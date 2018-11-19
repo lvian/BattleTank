@@ -1,9 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Tank.h"
-#include "TankBarrel.h"
-#include "Projectile.h"
-#include "TankAimComponent.h"
 
 // Sets default values
 ATank::ATank()
@@ -12,36 +9,35 @@ ATank::ATank()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
+float ATank::getHealthPercentage() const
+{
+
+	return (float) currentHealth / (float)startingHealth;
+}
+
 // Called when the game starts or when spawned
 void ATank::BeginPlay()
 {
 	Super::BeginPlay();
-	tankAimComponent = FindComponentByClass<UTankAimComponent>();
+
+	currentHealth = startingHealth;
+}
+
+float ATank::TakeDamage(float Damage, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
+{
+	int32 damagePoints = FPlatformMath::RoundToInt(Damage);
+	int32 damageToApply = FMath::Clamp(damagePoints, 0, currentHealth);
+
+	currentHealth -= damageToApply;
+	if (currentHealth <= 0 )
+	{
+		onDeath.Broadcast();
+	}
+	UE_LOG(LogClass, Warning, TEXT("HIT"));
+	return damageToApply;
 }
 
 
 // Called to bind functionality to input
 
 
-void ATank::aimAt(FVector hitLocation)
-{
-	if (!tankAimComponent) { return; }
-	tankAimComponent->aimAt(hitLocation , projectileSpeed);
-}
-
-void ATank::fire()
-{
-	bool isReloaded = (FPlatformTime::Seconds() - lastFireTime) > reloadTimeInSeconds;
-
-	if (barrel && isReloaded)
-	{	
-		auto projectile = GetWorld()->SpawnActor<AProjectile>(
-			projectileBlueprint,
-			barrel->GetSocketLocation(FName("Projectile")),
-			barrel->GetSocketRotation(FName("Projectile"))
-		);
-		projectile->launch(projectileSpeed);
-		
-		lastFireTime = FPlatformTime::Seconds();
-	}
-}

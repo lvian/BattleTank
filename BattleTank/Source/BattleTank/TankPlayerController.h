@@ -31,13 +31,16 @@ public:
 
 
 protected:
-	UFUNCTION(BlueprintCallable, Category = "Setup")
-	ATank* GetControlledTank() const;
+	
 	UFUNCTION(BlueprintImplementableEvent, Category = "Setup")
 	void foundAimingComponent(UTankAimComponent* aimCompRef);
 private:
+
+	virtual void SetPawn(APawn* InPawn) override;
 	
-	
+	UFUNCTION()
+	void onPossessedTankDeath();
+
 	UPROPERTY(EditAnywhere)
 	float crosshairY = 0.3333;
 

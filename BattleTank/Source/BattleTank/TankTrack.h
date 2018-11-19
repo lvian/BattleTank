@@ -17,10 +17,20 @@ class BATTLETANK_API UTankTrack : public UStaticMeshComponent
 	
 public:
 
+	UTankTrack();
+
 	UFUNCTION(BlueprintCallable, Category = Input)
 	void setThrottle(float throttle);
 
+	void DriveTrack(float currentThrotle);
+
 	UPROPERTY(EditDefaultsOnly)
 	float drivingForce = 400000;
-	
+private:
+
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+
+	void BeginPlay() override;
+
+	TArray<class ASprungWheel*> GetWheels();
 };

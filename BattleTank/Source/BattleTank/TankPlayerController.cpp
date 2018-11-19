@@ -2,8 +2,8 @@
 
 #include "TankPlayerController.h"
 #include "TankAimComponent.h"
-#include "BattleTank.h"
 #include "Tank.h"
+#include "BattleTank.h"
 
 
 
@@ -11,36 +11,34 @@ void ATankPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	auto controlledTank = GetControlledTank();
+	auto controlledTank = GetPawn();
 	
-	auto aimComponent = GetControlledTank()->FindComponentByClass<UTankAimComponent>();
-
+	auto aimComponent = GetPawn()->FindComponentByClass<UTankAimComponent>();
+	foundAimingComponent(aimComponent);
 }
 
 void ATankPlayerController::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
+	if (!GetPawn()) { return; }
+	
 	AimTowardsCrosshair();
 
 }
 
 
-ATank* ATankPlayerController::GetControlledTank() const
-{
-	return Cast<ATank>(GetPawn());
-
-}
-
 void ATankPlayerController::AimTowardsCrosshair()
 {
-	if (!GetControlledTank()) { return; };
+	auto aimComponent = GetPawn()->FindComponentByClass<UTankAimComponent>();
+	if (!ensure(aimComponent)) { return; };
 
 	FVector hitLocation;
 
-	if (GetSightRayHitLocation(hitLocation))
+	auto hitResult = GetSightRayHitLocation(hitLocation);
+	if (hitResult)
 	{
-		GetControlledTank()->aimAt(hitLocation);
+		aimComponent->aimAt(hitLocation);
 	};
 }
 
@@ -54,10 +52,10 @@ bool ATankPlayerController::GetSightRayHitLocation(FVector &outHitLocation) cons
 	FVector lookDirection;
 	if (GetLookDirection(screenLocation, lookDirection))
 	{
-		GetLookVectorHitLocation(lookDirection, outHitLocation);
+		return GetLookVectorHitLocation(lookDirection, outHitLocation);
 	};
 
-	return true;
+	return false;
 }
 
 bool ATankPlayerController::GetLookDirection(FVector2D screenLocation, FVector &lookDirection) const
@@ -76,7 +74,7 @@ bool ATankPlayerController::GetLookVectorHitLocation(FVector lookDirection, FVec
 			outHitResult,
 			startLocation,
 			endLocation,
-			ECollisionChannel::ECC_Visibility)
+			ECollisionChannel::ECC_Camera)
 		) 
 	{
 		hitlocation = outHitResult.Location;
@@ -85,4 +83,26 @@ bool ATankPlayerController::GetLookVectorHitLocation(FVector lookDirection, FVec
 	
 	hitlocation = FVector(0);
 	return false;
+}
+
+void ATankPlayerController::SetPawn(APawn * InPawn)
+{
+	Super::SetPawn(InPawn);
+	UE_LOG(LogClass, Warning, TEXT("Call"));
+	if (InPawn)
+	{
+		auto possessedTank = Cast<ATank>(InPawn);
+		if (!ensure(possessedTank)) { return; }
+		UE_LOG(LogClass, Warning, TEXT("call 2"));
+		possessedTank->onDeath.AddUniqueDynamic(this, &ATankPlayerController::onPossessedTankDeath);
+	}
+}
+
+void ATankPlayerController::onPossessedTankDeath()
+{
+	UE_LOG(LogClass, Warning, TEXT("Player DEAD"));
+
+	auto controlledTank = GetWorld()->GetFirstPlayerController();
+
+	controlledTank->StartSpectatingOnly();
 }

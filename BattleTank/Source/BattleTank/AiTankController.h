@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "TankAimComponent.h"
 #include "AiTankController.generated.h"
 
 /**
@@ -21,14 +22,19 @@ class BATTLETANK_API AAiTankController : public AAIController
 	
 public:
 
-	ATank* playerTank = nullptr ;
-	ATank* controlledTank = nullptr;
+	APawn* playerTank = nullptr ;
+	APawn* controlledTank = nullptr;
 	void BeginPlay() override;
 	void Tick(float deltaTime) override;
 
 private:
 
-	UPROPERTY(EditAnywhere)
-	float acceptanceRadius = 3000;
+	UPROPERTY(EditDefaultsOnly)
+	float acceptanceRadius = 8000;
+
+	virtual void SetPawn(APawn* InPawn) override;
+
+	UFUNCTION()
+	void onPossessedTankDeath();
 	
 };

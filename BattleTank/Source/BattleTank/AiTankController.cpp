@@ -2,13 +2,14 @@
 
 #include "AiTankController.h"
 #include "Tank.h"
+#include "TankAimComponent.h"
 
 
 void AAiTankController::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	controlledTank = Cast<ATank>(GetPawn());
+	controlledTank = GetPawn();
 
 	if (controlledTank)
 	{
@@ -16,7 +17,7 @@ void AAiTankController::BeginPlay()
 	}
 
 
-	playerTank = Cast<ATank>(GetWorld()->GetFirstPlayerController()->GetPawn());
+	playerTank = GetWorld()->GetFirstPlayerController()->GetPawn();
 
 	if (playerTank)
 	{
@@ -29,12 +30,36 @@ void AAiTankController::BeginPlay()
 void AAiTankController::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
-	if (playerTank)
-	{
-		auto result = MoveToActor(playerTank, 3.f, true, true, false, 0, true);
+	if (!ensure(playerTank && controlledTank)) {return;}
+
+	auto result = MoveToActor(playerTank, acceptanceRadius, true, true, false, 0, true);
 		
-		controlledTank->aimAt(playerTank->GetActorLocation());
-		controlledTank->fire();
+	auto aimComponent = controlledTank->FindComponentByClass<UTankAimComponent>();
+
+	aimComponent->aimAt(playerTank->GetActorLocation());
+	if (aimComponent->getFiringStatus() == EFiringStatus::locked)
+	{
+		aimComponent->fire();
 	}
 	
+}
+
+void AAiTankController::SetPawn(APawn * InPawn)
+{
+	Super::SetPawn(InPawn);
+
+	if (InPawn)
+	{
+		auto possessedTank = Cast<ATank>(InPawn);
+		if (!ensure(possessedTank) ){return;}
+
+		possessedTank->onDeath.AddUniqueDynamic(this, &AAiTankController::onPossessedTankDeath);
+	}
+}
+
+void AAiTankController::onPossessedTankDeath()
+{
+	UE_LOG(LogClass, Warning, TEXT("AI DEAD"));
+
+	controlledTank->DetachFromControllerPendingDestroy();
 }
